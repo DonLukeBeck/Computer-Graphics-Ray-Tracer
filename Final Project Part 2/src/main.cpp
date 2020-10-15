@@ -35,16 +35,41 @@ enum class ViewMode {
     RayTracing = 1
 };
 
+glm::vec3 diffuseF(const HitInfo hitInfo, const glm::vec3& vertexPos, const glm::vec3& normal, const glm::vec3& lightPos)
+{
+    glm::vec3 lambertianShading = hitInfo.material.ks * glm::max(glm::dot(normal, glm::normalize(lightPos - vertexPos)), 0.0f);
+    return lambertianShading;
+}
+
+glm::vec3 phongF(const HitInfo hitInfo, const glm::vec3& vertexPos, const glm::vec3& normal, const glm::vec3& lightPos, const glm::vec3& cameraPos)
+{
+    glm::vec3 viewDir = glm::normalize(cameraPos - vertexPos);
+    glm::vec3 reflectDir = glm::reflect(-glm::normalize(lightPos - vertexPos), glm::normalize(normal));
+    return hitInfo.material.ks * pow(glm::max(glm::dot(reflectDir, viewDir), 0.0f), hitInfo.material.shininess);
+}
+
 
 // NOTE(Mathijs): separate function to make recursion easier (could also be done with lambda + std::function).
 static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
+        glm::vec3 phong = glm::vec3(0, 0, 0);
+        
+        for (PointLight p : scene.pointLights) {
+            glm::vec3 diffuse = diffuseF(hitInfo, ray.origin + ray.t * ray.direction, hitInfo.normal, p.position);
+            glm::vec3 specular = phongF(hitInfo, ray.origin + ray.t * ray.direction, hitInfo.normal, p.position, ray.origin);
+            const glm::vec3 diff = p.position - (ray.origin + ray.t * ray.direction);
+            const float dist = glm::dot(diff, diff);
+            const glm::vec3 Li = p.color / dist;
+            const glm::vec3 illumination = diffuse + specular;
+            phong = Li * illumination;
+        }
+        
         // Draw a white debug ray.
         drawRay(ray, glm::vec3(1.0f));
         // Set the color of the pixel to white if the ray hits.
-        return glm::vec3(1.0f);
+        return phong;
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
