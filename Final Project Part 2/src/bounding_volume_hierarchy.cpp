@@ -36,6 +36,7 @@ int BoundingVolumeHierarchy::numLevels() const
 bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
 {
     bool hit = false;
+    float t = ray.t;
     // Intersect with all triangles of all meshes.
     for (const auto& mesh : m_pScene->meshes) {
         for (const auto& tri : mesh.triangles) {
@@ -43,8 +44,14 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
             if (intersectRayWithTriangle(v0.p, v1.p, v2.p, ray, hitInfo)) {
-                hitInfo.material = mesh.material;
+                if (t > ray.t) {
+                    t = ray.t;
+                    hitInfo.material = mesh.material;
+                }
                 hit = true;
+            }
+            if (t < ray.t) {
+                ray.t = t;
             }
         }
     }
