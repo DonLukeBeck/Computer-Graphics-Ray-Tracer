@@ -1,10 +1,37 @@
 #include "bounding_volume_hierarchy.h"
 #include "draw.h"
 
+AxisAlignedBox aabb;
+
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
-
+    float xmin = FLT_MAX;
+    float ymin = FLT_MAX;
+    float zmin = FLT_MAX;
+   
+    float xmax = FLT_MIN;
+    float ymax = FLT_MIN;
+    float zmax = FLT_MIN;
+    
+    // Intersect with all triangles of all meshes.
+    for (const auto& mesh : m_pScene->meshes) {
+        for (const auto& tri : mesh.triangles) {
+            const auto v0 = mesh.vertices[tri[0]];
+            const auto v1 = mesh.vertices[tri[1]];
+            const auto v2 = mesh.vertices[tri[2]];
+            
+            xmin = fmin(xmin, fmin(v0.p.x, fmin(v1.p.x, v2.p.x)));
+            ymin = fmin(ymin, fmin(v0.p.y, fmin(v1.p.y, v2.p.y)));
+            zmin = fmin(zmin, fmin(v0.p.z, fmin(v1.p.z, v2.p.z)));
+            
+            xmax = fmax(xmax, fmax(v0.p.x, fmax(v1.p.x, v2.p.x)));
+            ymax = fmax(ymax, fmax(v0.p.y, fmax(v1.p.y, v2.p.y)));
+            zmax = fmax(zmax, fmax(v0.p.z, fmax(v1.p.z, v2.p.z)));
+        }
+    }
+    aabb = { glm::vec3(xmin,ymin,zmin),
+        glm::vec3(xmax, ymax,zmax) };
     // as an example of how to iterate over all meshes in the scene, look at the intersect method below
 }
 
@@ -19,9 +46,9 @@ void BoundingVolumeHierarchy::debugDraw(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
-    //drawAABB(aabb, DrawMode::Wireframe);
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1);
+    //AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
+    drawAABB(aabb, DrawMode::Wireframe);
+    //drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1);
 }
 
 int BoundingVolumeHierarchy::numLevels() const
