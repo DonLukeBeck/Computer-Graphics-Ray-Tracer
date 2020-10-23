@@ -48,6 +48,7 @@ glm::vec3 phongF(const HitInfo& hitInfo, const glm::vec3& vertexPos, const glm::
     return hitInfo.material.ks * pow(glm::max(glm::dot(reflectDir, viewDir), 0.0f), hitInfo.material.shininess);
 }
 
+
 // NOTE(Mathijs): separate function to make recursion easier (could also be done with lambda + std::function).
 static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
 {
@@ -71,7 +72,8 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
         }
         
         // Draw a white debug ray.
-        drawRay(ray, glm::vec3(1.0f));
+        //drawRay(ray, glm::vec3(1.0f));
+        bvh.reflect(ray, hitInfo);
         // Set the color of the pixel to white if the ray hits.
         return phong;
     } else {

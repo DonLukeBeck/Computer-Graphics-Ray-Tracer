@@ -15,6 +15,8 @@ public:
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray& ray, HitInfo& hitInfo) const;
 
+    void reflect(Ray &ray, HitInfo &hitInfo) const;
+
     struct Node {
         bool leaf;
         Node* left;

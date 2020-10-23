@@ -1,12 +1,13 @@
 #include "bounding_volume_hierarchy.h"
 #include "draw.h"
+#include <glm\geometric.hpp>
 
 AxisAlignedBox aabb;
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
-    float xmin = FLT_MAX;
+    /*float xmin = FLT_MAX;
     float ymin = FLT_MAX;
     float zmin = FLT_MAX;
    
@@ -31,7 +32,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
         }
     }
     aabb = { glm::vec3(xmin,ymin,zmin),
-        glm::vec3(xmax, ymax,zmax) };
+        glm::vec3(xmax, ymax,zmax) };*/
     // as an example of how to iterate over all meshes in the scene, look at the intersect method below
 }
 
@@ -46,9 +47,9 @@ void BoundingVolumeHierarchy::debugDraw(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    //AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
-    drawAABB(aabb, DrawMode::Wireframe);
-    //drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1);
+    AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
+    //drawAABB(aabb, DrawMode::Wireframe);
+    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1);
 }
 
 int BoundingVolumeHierarchy::numLevels() const
@@ -63,7 +64,7 @@ int BoundingVolumeHierarchy::numLevels() const
 bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
 {
     bool hit = false;
-    float t = ray.t;
+    //float t = ray.t;
     // Intersect with all triangles of all meshes.
     for (const auto& mesh : m_pScene->meshes) {
         for (const auto& tri : mesh.triangles) {
@@ -71,15 +72,15 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
             const auto v1 = mesh.vertices[tri[1]];
             const auto v2 = mesh.vertices[tri[2]];
             if (intersectRayWithTriangle(v0.p, v1.p, v2.p, ray, hitInfo)) {
-                if (t > ray.t) {
+                /*if (t > ray.t) {
                     t = ray.t;
-                    hitInfo.material = mesh.material;
-                }
+                }*/
+                hitInfo.material = mesh.material;
                 hit = true;
             }
-            if (t < ray.t) {
+            /*if (t < ray.t) {
                 ray.t = t;
-            }
+            }*/
         }
     }
     // Intersect with spheres.
@@ -87,3 +88,25 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
         hit |= intersectRayWithShape(sphere, ray, hitInfo);
     return hit;
 }
+
+Ray reflection(Ray& ray, HitInfo& hitInfo)
+{
+    glm::vec3 direction = glm::normalize(glm::reflect(glm::normalize(ray.direction), glm::normalize(hitInfo.normal)));
+    glm::vec3 intersection = ray.origin + ray.t * ray.direction;
+    return Ray{ intersection, direction };
+}
+
+void BoundingVolumeHierarchy::reflect(Ray &ray, HitInfo &hitInfo) const
+{
+    drawRay(ray, glm::vec3(1.0f));
+    glm::vec3 ks = hitInfo.material.ks;
+    if(ks.x != 0 || ks.y != 0 || ks.z != 0){
+        Ray reflected = reflection(ray, hitInfo);
+        HitInfo newHitInfo;
+        if(BoundingVolumeHierarchy::intersect(reflected, newHitInfo))
+            drawRay(reflected, glm::vec3(1.0f));
+    }
+    
+}
+
+
