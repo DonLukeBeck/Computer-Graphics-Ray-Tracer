@@ -51,7 +51,7 @@ Plane trianglePlane(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v
 {
     Plane plane;
     plane.normal = glm::normalize(glm::cross((v0 - v2), (v1 - v2)));
-    plane.D = fabs(glm::dot(plane.normal, v0));
+    plane.D = glm::dot(plane.normal, v2);
 
     return plane;
 }
