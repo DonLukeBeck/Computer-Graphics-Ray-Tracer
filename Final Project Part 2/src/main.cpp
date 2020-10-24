@@ -48,13 +48,20 @@ glm::vec3 phongF(const HitInfo& hitInfo, const glm::vec3& vertexPos, const glm::
     return hitInfo.material.ks * pow(glm::max(glm::dot(reflectDir, viewDir), 0.0f), hitInfo.material.shininess);
 }
 
+Ray rayShadows(const Ray& ray, const glm::vec3& lightpos) {
+    Ray newRay;
+    newRay.origin = ray.origin + ray.direction * ray.t;
+    newRay.direction = lightpos - newRay.origin;
+    newRay.t = 1;
+    return newRay;
+}
+
 // NOTE(Mathijs): separate function to make recursion easier (could also be done with lambda + std::function).
 static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
         glm::vec3 phong = glm::vec3(0, 0, 0);
-        
         for (PointLight p : scene.pointLights) {
             glm::vec3 diffuse = diffuseF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position);
             glm::vec3 specular = phongF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position, ray.origin);
@@ -68,8 +75,14 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
 
             const glm::vec3 illumination = diffuse * p.color + specular * p.color;
             phong += illumination;
+            
+            Ray hardShadow = rayShadows(ray, p.position);
+            if (bvh.intersect(hardShadow, hitInfo, 5)) {
+                drawRay(hardShadow, glm::vec3(0.0f, 0.0f, 1.0f));
+                return glm::vec3(0.0f);
+            }
+            else drawRay(hardShadow, glm::vec3(1.0f));
         }
-        
         // Draw a white debug ray.
         drawRay(ray, glm::vec3(1.0f));
         // Set the color of the pixel to white if the ray hits.
