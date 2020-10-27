@@ -60,8 +60,7 @@ std::vector<Ray> softShadows(const Ray& ray, const SphericalLight& p) {
     Ray test, east, west, north, south;
     test = ray;
     test.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(0, 0, 1)));
-    float distance = glm::distance(test.origin + test.direction, p.position);
-    distance = p.radius/distance;
+    float distance = p.radius;
     east = ray;
     east.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(0, 0, 1))) * distance;
     west = ray;
@@ -83,21 +82,21 @@ std::vector<Ray> softShadows(const Ray& ray, const SphericalLight& p) {
 
     Ray NNW, WNW, WSW, SSW, SSE, ESE, ENE, NNE;
     NNE = ray;
-    NNE.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(4.0f / 18, 0, 16.0f / 18))) * distance;
+    NNE.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(1.0f / 3, 0, 2.0f / 3))) * distance;
     SSW = ray;
-    SSW.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(4.0f / 18, 0, 16.0f / 18))) * distance;
+    SSW.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(1.0f / 3, 0, 2.0f / 3))) * distance;
     WNW = ray;
-    WNW.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(16.0f / 18, 0, 4.0f / 18))) * distance;
+    WNW.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(1.0f / 3, 0, -2.0f / 3))) * distance;
     ESE = ray;
-    ESE.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(16.0f / 18, 0, 4.0f / 18))) * distance;
+    ESE.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(1.0f / 3, 0, -2.0f / 3))) * distance;
     NNW = ray;
-    NNW.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(-4.0f / 18, 0, 16.0f / 18))) * distance;
+    NNW.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(2.0f / 3, 0, 1.0f / 3))) * distance;
     SSE = ray;
-    SSE.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(-4.0f / 18, 0, 16.0f / 18))) * distance;
+    SSE.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(2.0f / 3, 0, 1.0f / 3))) * distance;
     ENE = ray;
-    ENE.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(-16.0f / 18, 0, 4.0f / 18))) * distance;
+    ENE.direction = ray.direction - (glm::cross(ray.direction, glm::vec3(2.0f / 3, 0, -1.0f / 3))) * distance;
     WSW = ray;
-    WSW.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(-16.0f / 18, 0, 4.0f / 18))) * distance;
+    WSW.direction = ray.direction + (glm::cross(ray.direction, glm::vec3(2.0f / 3, 0, -2.0f / 3))) * distance;
 
     std::vector<Ray> res = { north, east, south, west, northEast, northWest, southEast, southWest, NNW, WNW, WSW, SSW, SSE, ESE, ENE, NNE };
     return res;
@@ -132,6 +131,19 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
         }
 
         for (SphericalLight p : scene.sphericalLight) {
+            glm::vec3 diffuse = diffuseF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position);
+            glm::vec3 specular = phongF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position, ray.origin);
+
+            if (glm::isnan(diffuse.x)) diffuse.x = 0;
+            if (glm::isnan(diffuse.y)) diffuse.y = 0;
+            if (glm::isnan(diffuse.z)) diffuse.z = 0;
+            if (glm::isnan(specular.x)) specular.x = 0;
+            if (glm::isnan(specular.y)) specular.y = 0;
+            if (glm::isnan(specular.z)) specular.z = 0;
+
+            const glm::vec3 illumination = diffuse * p.color + specular * p.color;
+            phong += illumination;
+
             Ray centerSphere = rayShadows(ray, p.position);
             std::vector<Ray> softShadowRays = softShadows(centerSphere, p);
             int count = 0;
@@ -142,8 +154,12 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
                 }
                 else drawRay(r, glm::vec3(1.0f));
             }
-            float gradient = count / softShadowRays.size();
-            return  gradient * glm::vec3(1.0f);
+            if (count != 0) {
+                if (count == softShadowRays.size()) {
+                    return glm::vec3(0.0f);
+                }
+                return phong - (float)count / softShadowRays.size() * phong;
+            }
         }
         // Draw a white debug ray.
         drawRay(ray, glm::vec3(1.0f));
