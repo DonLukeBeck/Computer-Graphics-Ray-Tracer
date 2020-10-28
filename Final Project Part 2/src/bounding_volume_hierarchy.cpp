@@ -47,8 +47,8 @@ void BoundingVolumeHierarchy::debugDraw(int level)
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
 
     // Draw the AABB as a (white) wireframe box.
-    AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
-    //drawAABB(aabb, DrawMode::Wireframe);
+    //AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
+    drawAABB(aabb, DrawMode::Wireframe);
     drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1);
 }
 
@@ -61,7 +61,7 @@ int BoundingVolumeHierarchy::numLevels() const
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h .
-bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
+bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, int level) const
 {
     bool hit = false;
     //float t = ray.t;
@@ -86,6 +86,17 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
     // Intersect with spheres.
     for (const auto& sphere : m_pScene->spheres)
         hit |= intersectRayWithShape(sphere, ray, hitInfo);
+    
+    if (hit == true && level < 5) {
+        drawRay(ray,glm::vec3(1.0f));
+        if (hitInfo.material.ks != glm::vec3(0)) {
+            Ray newRay;
+            newRay.origin = hitInfo.intersection;
+            newRay.direction = glm::reflect(ray.direction, hitInfo.normal);
+            hit = intersect(newRay, hitInfo, level);
+        }
+    }
+
     return hit;
 }
 
