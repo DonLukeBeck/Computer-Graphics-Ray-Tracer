@@ -2,6 +2,7 @@
 #include "ray_tracing.h"
 #include "scene.h"
 
+
 class BoundingVolumeHierarchy {
 public:
     BoundingVolumeHierarchy(Scene* pScene);
@@ -18,11 +19,17 @@ public:
     void reflect(Ray &ray, HitInfo &hitInfo) const;
 
     struct Node {
-        bool leaf;
-        Node* left;
-        Node* right;
+        bool leaf = true;
+        //Node* left;
+        //Node* right;
         std::vector<glm::vec3> indices;
+        std::vector<Mesh> meshes;
     };
+
+    Node root;
+
+    std::vector<Node> nodes = {};
+
 
 private:
     Scene* m_pScene;
