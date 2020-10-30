@@ -4,8 +4,6 @@
 #include <iostream>
 #include <stack>
 
-int levels = 0;
-
 AxisAlignedBox BoundingVolumeHierarchy::createBV(std::vector<std::pair<int, int>> triangles) {
     float xmin = FLT_MAX;
     float ymin = FLT_MAX;
@@ -58,7 +56,7 @@ void BoundingVolumeHierarchy::split(AxisAlignedBox& parentBox, std::vector<std::
         float min =  fmin(v0.p[axis], fmin(v1.p[axis], v2.p[axis]));
         float max =  fmax(v0.p[axis], fmax(v1.p[axis], v2.p[axis]));
 
-        if ((min+max)/2 < middle) {
+        if (min < middle && max < middle) {
             leftTriangles.push_back(triangle);
         }
         else {
@@ -71,7 +69,6 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
 {
     Node root;
-    root.leaf = false;
 
     std::vector<std::pair<int, int>> triangles;
     for (int i = 0; i < m_pScene->meshes.size(); i++) { 
@@ -83,46 +80,71 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     root.triangles = triangles;
     root.bv = createBV(root.triangles);
-    root.meshes = m_pScene->meshes;
+    root.level = 0;
+    nodes.push_back(root);
+
     int lvl = 0;
-
-    this->nodes.push_back(root);
-
     int i = 0;
-    while (lvl < 8) {
-        Node left, right;
-        if (lvl % 2 == 0) {
+    
 
-            std::vector<std::pair<int, int>> leftTriangles;
-            std::vector<std::pair<int, int>> rightTriangles;
-            split(this->nodes[i].bv, this->nodes[i].triangles, leftTriangles, rightTriangles, 0);
-            left.triangles = leftTriangles;
-            right.triangles = rightTriangles;
-            left.bv = createBV(left.triangles);
-            right.bv = createBV(right.triangles);
-        }
-        else {
-            std::vector<std::pair<int, int>> leftTriangles;
-            std::vector<std::pair<int, int>> rightTriangles;
-            split(this->nodes[i].bv, this->nodes[i].triangles, leftTriangles, rightTriangles, 2);
-            left.triangles = leftTriangles;
-            right.triangles = rightTriangles;
-            left.bv = createBV(left.triangles);
-            right.bv = createBV(right.triangles);
-        }
-
-        if (left.triangles.empty() && right.triangles.empty())
+    while (lvl < 6 && i < nodes.size()) {
+        if (nodes[i].triangles.size() < 10 || nodes[i].leaf == true) {
             nodes[i].leaf = true;
-        
-        if (i == glm::pow(2, lvl + 1) - 2)
-            lvl++;
-        this->nodes[i].left = 2*i+1;
-        this->nodes.push_back(left);
-        this->nodes[i].right = 2*i+2;
-        this->nodes.push_back(right);
+            lvl = nodes[i].level;
+            i++;
+            continue;
+        }
+
+        if (!nodes[i].leaf) {
+            Node left, right;
+            if (nodes[i].level % 2 == 0) {
+                std::vector<std::pair<int, int>> leftTriangles;
+                std::vector<std::pair<int, int>> rightTriangles;
+                split(nodes[i].bv, nodes[i].triangles, leftTriangles, rightTriangles, 0);
+                left.triangles = leftTriangles;
+                left.level = nodes[i].level + 1;
+                right.triangles = rightTriangles;
+                right.level = nodes[i].level + 1;
+                if (left.triangles.size() < 10) {
+                    left.leaf = true;
+                }
+                if (right.triangles.size() < 10) {
+                    right.leaf = true;
+                }
+                lvl = nodes[i].level + 1;
+                left.bv = createBV(left.triangles);
+                right.bv = createBV(right.triangles);
+            }
+            else {
+                std::vector<std::pair<int, int>> leftTriangles;
+                std::vector<std::pair<int, int>> rightTriangles;
+                split(nodes[i].bv, nodes[i].triangles, leftTriangles, rightTriangles, 2);
+                left.triangles = leftTriangles;
+                left.level = nodes[i].level + 1;
+                right.triangles = rightTriangles;
+                right.level = nodes[i].level + 1;
+                if (left.triangles.size() < 10) {
+                    left.leaf = true;
+                }
+                if (right.triangles.size() < 10) {
+                    right.leaf = true;
+                }
+                lvl = nodes[i].level + 1;
+                left.bv = createBV(left.triangles);
+                right.bv = createBV(right.triangles);
+            }
+            if (left.triangles.size() != 0) {
+                nodes[i].left = nodes.size();
+                nodes.push_back(left);
+            }
+            if (right.triangles.size() != 0) {
+                nodes[i].right = nodes.size();
+                nodes.push_back(right);
+            }
+        }
         i++;
     }
-    levels = lvl;
+    this->levels = lvl;
     
 }
 
@@ -139,13 +161,13 @@ void BoundingVolumeHierarchy::debugDraw(int level){
     // Draw the AABB as a (white) wireframe box.
     //AxisAlignedBox aabb { glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     //drawAABB(aabb, DrawMode::Wireframe);
-    if(level<this->numLevels())
-        for (int i = glm::pow(2, level)-1 ; i < glm::pow(2, (level+1))-1; i++) {
-            if (!this->nodes[i].leaf) {
-                //AxisAlignedBox box = { this->nodes[i].indices[0],this->nodes[i].indices[1] };
-                //drawAABB(box, DrawMode::Wireframe);
-            drawAABB(this->nodes[i].bv, DrawMode::Wireframe);
-            }
+    //if(level<this->numLevels())
+        for (const auto& node: nodes) {
+            if(node.level==level)
+                drawAABB(node.bv, DrawMode::Wireframe);
+            /*if (this->nodes[i].leaf) {
+                drawAABB(this->nodes[i].bv, DrawMode::Wireframe);
+            }*/
         }
     //AxisAlignedBox box = { this->nodes[0].indices[0],this->nodes[0].indices[1]};
     //drawAABB(box, DrawMode::Wireframe);
@@ -154,7 +176,7 @@ void BoundingVolumeHierarchy::debugDraw(int level){
 
 int BoundingVolumeHierarchy::numLevels() const
 {
-    return levels;
+    return this->levels;
 }
 
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
@@ -165,21 +187,17 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, int level) c
 {
     bool hit = false;
 
-    // Intersect with spheres.
-    for (const auto& sphere : m_pScene->spheres)
-        hit |= intersectRayWithShape(sphere, ray, hitInfo);
-
     // Intersect with all triangles of all meshes.
     std::stack<Node> stack;
     stack.push(nodes[0]);
-
-    while (!stack.empty()) {
-        Node node = stack.top();
+ //   hit = false;
+    while (stack.size()!=0) {
+        Node current = stack.top();
         stack.pop();
 
-        if (intersectRayWithShape(node.bv, ray)) {
-            if (node.leaf) {
-                for (const auto& triangle : node.triangles) {
+        if (intersectRayWithShape(current.bv, ray)) {
+            if (current.leaf) {
+                for (const auto& triangle : current.triangles) {
                     Mesh& mesh = this->m_pScene->meshes[triangle.first];
                     const auto& tri = mesh.triangles[triangle.second];
                     const auto& v0 = mesh.vertices[tri[0]];
@@ -192,29 +210,23 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, int level) c
                 }
             }
             else {
-                Node right = nodes[node.right];
+                Node right = nodes[current.right];
                 if (intersectRayWithShape(right.bv, ray)) {
                     stack.push(right);
                 }
-                Node left = nodes[node.left];
+                Node left = nodes[current.left];
                 if (intersectRayWithShape(left.bv, ray)) {
                     stack.push(left);
                 }
+                
             }
         }
     }
 
-    /*for (const auto& mesh : m_pScene->meshes) {
-        for (const auto& tri : mesh.triangles) {
-            const auto v0 = mesh.vertices[tri[0]];
-            const auto v1 = mesh.vertices[tri[1]];
-            const auto v2 = mesh.vertices[tri[2]];
-            if (intersectRayWithTriangle(v0.p, v1.p, v2.p, ray, hitInfo)) {
-                hitInfo.material = mesh.material;
-                hit = true;
-            }
-        }
-    }*/
+    // Intersect with spheres.
+    for (const auto& sphere : m_pScene->spheres)
+        hit |= intersectRayWithShape(sphere, ray, hitInfo);
+
     
    if (hit == true && level < 5) {
         drawRay(ray,glm::vec3(1.0f));
@@ -223,9 +235,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, int level) c
             Ray newRay;
             newRay.origin = hitInfo.intersection;
             newRay.direction = glm::reflect(ray.direction, hitInfo.normal);
-            hit = intersect(newRay, newHitInfo, level);
+            hit = intersect(newRay, newHitInfo, level+1);
         }
-    }
+   }
 
     return hit;
 }

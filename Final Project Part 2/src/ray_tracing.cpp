@@ -102,7 +102,7 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
     float tin = glm::max(glm::max(tinx, tiny), tinz);
     float tout = glm::min(glm::min(toutx, touty), toutz);
 
-    if (tin > tout || tout < 0 || tin >= ray.t)
+    if (tin > tout || tout < 0 )//|| tin >= ray.t)
         return false;
     //ray.t = tin;
     return true;

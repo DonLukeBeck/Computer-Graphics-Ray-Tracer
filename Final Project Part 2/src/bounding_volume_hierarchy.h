@@ -23,10 +23,10 @@ public:
 
     struct Node {
         bool leaf = false;
-        int left;
-        int right;
+        int left=0;
+        int right=0;
+        int level=0;
         std::vector<glm::vec3> indices;
-        std::vector<Mesh> meshes;
         std::vector<std::pair<int, int>> triangles;
         AxisAlignedBox bv;
     };
@@ -35,6 +35,7 @@ public:
 
     std::vector<Node> nodes = {};
 
+    int levels = 0;
 
 private:
     Scene* m_pScene;
