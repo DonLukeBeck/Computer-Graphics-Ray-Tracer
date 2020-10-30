@@ -181,13 +181,14 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, int level) c
     for (const auto& sphere : m_pScene->spheres)
         hit |= intersectRayWithShape(sphere, ray, hitInfo);
     
-    if (hit == true && level < 5) {
+   if (hit == true && level < 5) {
         drawRay(ray,glm::vec3(1.0f));
+        HitInfo newHitInfo;
         if (hitInfo.material.ks != glm::vec3(0)) {
             Ray newRay;
             newRay.origin = hitInfo.intersection;
             newRay.direction = glm::reflect(ray.direction, hitInfo.normal);
-            hit = intersect(newRay, hitInfo, level);
+            hit = intersect(newRay, newHitInfo, level);
         }
     }
 
@@ -208,8 +209,10 @@ void BoundingVolumeHierarchy::reflect(Ray &ray, HitInfo &hitInfo) const
     if(ks.x != 0 || ks.y != 0 || ks.z != 0){
         Ray reflected = reflection(ray, hitInfo);
         HitInfo newHitInfo;
-        if(BoundingVolumeHierarchy::intersect(reflected, newHitInfo))
+        if (BoundingVolumeHierarchy::intersect(reflected, newHitInfo)) {
+            reflect(reflected, newHitInfo);
             drawRay(reflected, glm::vec3(1.0f));
+        }
     }
     
 }

@@ -95,6 +95,15 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
         glm::vec3 phong = glm::vec3(0, 0, 0);
+
+        glm::vec3 ks = hitInfo.material.ks;
+        if (ks.x != 0 || ks.y != 0 || ks.z != 0) {
+            Ray reflect;
+            reflect.direction = glm::normalize(glm::reflect(glm::normalize(ray.direction), glm::normalize(hitInfo.normal)));
+            reflect.origin = ray.origin + ray.direction * ray.t;
+            HitInfo newHitInfo;
+            return getFinalColor(scene, bvh, reflect);
+        }
         for (PointLight p : scene.pointLights) {
             glm::vec3 diffuse = diffuseF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position);
             glm::vec3 specular = phongF(hitInfo, hitInfo.intersection, hitInfo.normal, p.position, ray.origin);
