@@ -39,7 +39,7 @@ AxisAlignedBox BoundingVolumeHierarchy::createBV(std::vector<std::pair<int, int>
     return box;
 }
 
-void BoundingVolumeHierarchy::split(AxisAlignedBox& parentBox, std::vector<std::pair<int, int>>& parentTriangles,
+/*void BoundingVolumeHierarchy::split(AxisAlignedBox& parentBox, std::vector<std::pair<int, int>>& parentTriangles,
     std::vector<std::pair<int, int>>& leftTriangles, std::vector<std::pair<int, int>>& rightTriangles, int axis) {
 
     float middle = (parentBox.lower[axis] + parentBox.upper[axis]) / 2;
@@ -57,6 +57,45 @@ void BoundingVolumeHierarchy::split(AxisAlignedBox& parentBox, std::vector<std::
         float max =  fmax(v0.p[axis], fmax(v1.p[axis], v2.p[axis]));
 
         if (min < middle && max < middle) {
+            leftTriangles.push_back(triangle);
+        }
+        else {
+            rightTriangles.push_back(triangle);
+        }
+    }
+}*/
+void BoundingVolumeHierarchy::split(AxisAlignedBox& parentBox, std::vector<std::pair<int, int>>& parentTriangles,
+    std::vector<std::pair<int, int>>& leftTriangles, std::vector<std::pair<int, int>>& rightTriangles, int axis) {
+
+    float middle = 0.0f;
+
+    for (const auto& triangle : parentTriangles) {
+
+        Mesh& mesh = this->m_pScene->meshes[triangle.first];
+        const auto& tri = mesh.triangles[triangle.second];
+
+        const auto& v0 = this->m_pScene->meshes[triangle.first].vertices[tri[0]];
+        const auto& v1 = this->m_pScene->meshes[triangle.first].vertices[tri[1]];
+        const auto& v2 = this->m_pScene->meshes[triangle.first].vertices[tri[2]];
+
+        middle += (v0.p[axis] + v1.p[axis] + v2.p[axis]);
+    }
+
+    middle /= (3 * parentTriangles.size());
+
+    for (const auto& triangle : parentTriangles) {
+
+        Mesh& mesh = this->m_pScene->meshes[triangle.first];
+        const auto& tri = mesh.triangles[triangle.second];
+
+        const auto& v0 = this->m_pScene->meshes[triangle.first].vertices[tri[0]];
+        const auto& v1 = this->m_pScene->meshes[triangle.first].vertices[tri[1]];
+        const auto& v2 = this->m_pScene->meshes[triangle.first].vertices[tri[2]];
+
+        float min = fmin(v0.p[axis], fmin(v1.p[axis], v2.p[axis]));
+        float max = fmax(v0.p[axis], fmax(v1.p[axis], v2.p[axis]));
+
+        if ((min + max) / 2 < middle) {
             leftTriangles.push_back(triangle);
         }
         else {
@@ -87,7 +126,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     int i = 0;
     
 
-    while (lvl < 6 && i < nodes.size()) {
+    while (lvl < 8 && i < nodes.size()) {
         if (nodes[i].triangles.size() < 10 || nodes[i].leaf == true) {
             nodes[i].leaf = true;
             lvl = nodes[i].level;
