@@ -17,7 +17,6 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     float ymax = FLT_MIN;
     float zmax = FLT_MIN;
     
-    // Intersect with all triangles of all meshes.
     for (const auto& mesh : m_pScene->meshes) {
         for (const auto& tri : mesh.triangles) {
             const auto v0 = mesh.vertices[tri[0]];
@@ -48,7 +47,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     this->nodes.push_back(root);
     int i = 0;
     while (i < 32) {
-        std::cout << lvl;
+  
         std::vector<glm::vec3> indices = this->nodes[i].indices;
         Node left, right;
         if (lvl % 2 == 0) {
@@ -117,7 +116,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
             left.leaf = false;
         if (!right.meshes.empty())
             right.leaf = false;
-        if(i==glm::pow(2,lvl+1)-2)
+        if(i == glm::pow(2, lvl + 1) - 2)
             lvl++;
         this->nodes.push_back(left);
         this->nodes.push_back(right);
@@ -125,7 +124,6 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     }
     levels = lvl;
     
-    // as an example of how to iterate over all meshes in the scene, look at the intersect method below
 }
 
 

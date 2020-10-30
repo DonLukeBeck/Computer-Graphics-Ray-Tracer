@@ -20,8 +20,6 @@ public:
 
     struct Node {
         bool leaf = true;
-        //Node* left;
-        //Node* right;
         std::vector<glm::vec3> indices;
         std::vector<Mesh> meshes;
     };

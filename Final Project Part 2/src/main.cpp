@@ -35,12 +35,14 @@ enum class ViewMode {
     RayTracing = 1
 };
 
+// Standard lambertian shading: Kd * dot(N,L), clamped to zero when negative. Where L is the light vector.
 glm::vec3 diffuseF(const HitInfo& hitInfo, const glm::vec3& vertexPos, const glm::vec3& normal, const glm::vec3& lightPos)
 {
     glm::vec3 lambertianShading = hitInfo.material.kd * glm::max(glm::dot(normal, glm::normalize(lightPos - vertexPos)), 0.0f);
     return lambertianShading;
 }
 
+// Phong Shading Specularity (http://en.wikipedia.org/wiki/Blinn%E2%80%93Phong_shading_model)
 glm::vec3 phongF(const HitInfo& hitInfo, const glm::vec3& vertexPos, const glm::vec3& normal, const glm::vec3& lightPos, const glm::vec3& cameraPos)
 {
     glm::vec3 viewDir = glm::normalize(cameraPos - vertexPos);
