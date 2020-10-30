@@ -104,7 +104,7 @@ bool intersectRayWithShape(const AxisAlignedBox& box, Ray& ray)
 
     if (tin > tout || tout < 0 || tin >= ray.t)
         return false;
-    ray.t = tin;
+    //ray.t = tin;
     return true;
 
 }

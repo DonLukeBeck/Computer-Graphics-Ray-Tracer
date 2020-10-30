@@ -5,6 +5,9 @@
 
 class BoundingVolumeHierarchy {
 public:
+    AxisAlignedBox createBV(std::vector<std::pair<int, int>> triangles);
+    void split(AxisAlignedBox& parentBox, std::vector<std::pair<int, int>>& parentTriangles,
+        std::vector<std::pair<int, int>>& leftTriangles, std::vector<std::pair<int, int>>& rightTriangles, int axis);
     BoundingVolumeHierarchy(Scene* pScene);
 
     // Use this function to visualize your BVH. This can be useful for debugging.
@@ -19,12 +22,16 @@ public:
     void reflect(Ray &ray, HitInfo &hitInfo) const;
 
     struct Node {
-        bool leaf = true;
+        bool leaf = false;
+        int left;
+        int right;
         std::vector<glm::vec3> indices;
         std::vector<Mesh> meshes;
+        std::vector<std::pair<int, int>> triangles;
+        AxisAlignedBox bv;
     };
 
-    Node root;
+    //Node root;
 
     std::vector<Node> nodes = {};
 
